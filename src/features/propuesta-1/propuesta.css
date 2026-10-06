@@ -1,0 +1,665 @@
+/**
+ * Estilos de la landing narrativa · `/`
+ *
+ * Archivo aparte de `index.css` a propósito: nada de esto debe poder afectar al
+ * resto del sitio (registro, panel, páginas del CMS). Todas las reglas cuelgan
+ * de `.propuesta` o de sus descendientes.
+ */
+
+/* -----------------------------------------------------------------------------
+ * Fondo tinto
+ *
+ * El gris azulado del tema oscuro dejaba la escena fría y ajena a la marca. Se
+ * sustituye por un tinto muy oscuro, derivado del rojo institucional.
+ *
+ * **Los contrastes se midieron antes de elegirlo**, no después: sobre este fondo
+ * el texto principal da 19.00:1, el secundario 7.54:1 y el color de acento
+ * 4.96:1. Los tres pasan WCAG 2.1 AA, y son prácticamente los mismos valores que
+ * daba el fondo anterior — la certificación del Sprint 8 no se toca.
+ *
+ * Solo se cambia el fondo. Ningún token de texto se modifica: mover uno obligaría
+ * a auditar de nuevo todo el sitio, no solo esta ruta.
+ *
+ * **Solo aplica a la paleta institucional** (`html` sin `data-paleta`). Las
+ * combinaciones que se están evaluando traen su propio modo oscuro derivado de
+ * su color ancla, y pisarlo aquí dejaría esta ruta igual en las cuatro: era el
+ * motivo de que cambiar de tema no se notara en la escena.
+ *
+ * **Y solo en modo oscuro** (`.dark`). Sin esa condición, estos seis tokens
+ * oscuros se aplicaban también en claro: la institucional era la única paleta
+ * cuyo fondo no cambiaba al cambiar de modo —quedaba vino en los dos—, mientras
+ * el resto de la página sí cambiaba alrededor. Se veía como que el tema movía
+ * los colores pero no el fondo del lienzo, porque literalmente era eso.
+ * -------------------------------------------------------------------------- */
+
+html:not([data-paleta]).dark .propuesta {
+	--background: oklch(0.15 0.055 14);
+	--card: oklch(0.21 0.05 14);
+	--popover: oklch(0.21 0.05 14);
+	--muted: oklch(0.27 0.045 14);
+	--secondary: oklch(0.27 0.045 14);
+	--accent: oklch(0.27 0.045 14);
+}
+
+/* -----------------------------------------------------------------------------
+ * Revelado al scroll · RV-L1.2
+ * -------------------------------------------------------------------------- */
+
+.propuesta .revelar {
+	opacity: 0;
+	transition-property: opacity, transform, filter;
+	transition-duration: 700ms;
+	/* Salida rápida y llegada lenta: se lee como algo que se posa, no que frena. */
+	transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+	/*
+	 * **`will-change` ya no está aquí, y esa es la corrección.**
+	 *
+	 * Escrito en esta regla lo llevaban los sesenta y nueve bloques de la página
+	 * desde el primer pintado, y `will-change` promueve el elemento a su propia
+	 * capa de composición en el acto: sesenta y nueve capas retenidas en memoria
+	 * de vídeo —varias con un `filter: blur()` que obliga a guardar además la
+	 * versión desenfocada— compitiendo con el campo de estrellas por la misma
+	 * tarjeta. Se notaba como tirones al entrar en una sección.
+	 *
+	 * Ahora lo pone y lo quita `escena/Revelar.tsx`, con un segundo observador
+	 * que va 500 px por delante: se promueve lo que está a punto de animarse y se
+	 * suelta al terminar. Ahí está explicado en detalle.
+	 */
+}
+
+.propuesta .revelar[data-variante="abajo"] {
+	transform: translate3d(0, 2rem, 0);
+}
+.propuesta .revelar[data-variante="izquierda"] {
+	transform: translate3d(-1.5rem, 0, 0);
+}
+.propuesta .revelar[data-variante="derecha"] {
+	transform: translate3d(1.5rem, 0, 0);
+}
+.propuesta .revelar[data-variante="escala"] {
+	transform: scale(0.96);
+}
+
+/**
+ * Variantes con carácter · RV-L1.2b
+ *
+ * Cada tipo de sección entra con un gesto propio. Con el mismo desvanecido para
+ * todo, trece secciones seguidas se leen como una sola lista larga; con gestos
+ * distintos, cada capítulo se anuncia como algo nuevo.
+ *
+ * Todos parten de un estado **ya legible** y animan solo opacidad, transformada
+ * y desenfoque. Ninguno depende de la animación para existir: con
+ * `prefers-reduced-motion` la regla de seguridad de más abajo los anula todos.
+ */
+
+/** Emerge de la profundidad. Para los títulos de capítulo. */
+.propuesta .revelar[data-variante="profundidad"] {
+	transform: translate3d(0, 1.2rem, 0) scale(0.94);
+	filter: blur(6px);
+}
+
+/** Se levanta girando sobre su base. Para cifras y datos. */
+.propuesta .revelar[data-variante="pivote"] {
+	transform: perspective(800px) rotateX(14deg) translate3d(0, 1.4rem, 0);
+	transform-origin: 50% 100%;
+}
+
+/** Entra deslizándose desde el margen exterior. Para listas y pasos. */
+.propuesta .revelar[data-variante="margen"] {
+	transform: translate3d(-2.5rem, 0.6rem, 0);
+}
+.propuesta .bloque[data-lado="derecha"] .revelar[data-variante="margen"] {
+	transform: translate3d(2.5rem, 0.6rem, 0);
+}
+
+/** Se enfoca. Para el manifiesto y el cierre, donde manda una sola frase. */
+.propuesta .revelar[data-variante="enfoque"] {
+	filter: blur(10px);
+	transform: scale(1.03);
+}
+
+/**
+ * `!important` a propósito: `[data-lado="derecha"] .revelar[data-variante="margen"]`
+ * (más arriba) tiene mayor especificidad que este selector, así que sin esto
+ * ganaba incluso después de revelarse — el elemento se quedaba desplazado
+ * 2.5rem para siempre. Con la escena a la vista eso solo sobraba scroll
+ * horizontal invisible; desde que `.propuesta` recorta con `overflow-x: clip`
+ * (más abajo), ese sobrante corta texto y tarjetas de verdad.
+ */
+.propuesta .revelar[data-visible="true"] {
+	opacity: 1 !important;
+	transform: none !important;
+	filter: none !important;
+}
+
+/**
+ * Red de seguridad. `useAnimacionActiva()` ya evita aplicar la clase `revelar`
+ * cuando el sistema pide menos movimiento, pero si algo fallara en el JavaScript
+ * el contenido quedaría invisible para siempre — un fallo de accesibilidad
+ * grave. Esta regla garantiza que el texto se vea aunque el observador nunca
+ * llegue a dispararse.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.propuesta .revelar {
+		opacity: 1 !important;
+		transform: none !important;
+		transition: none !important;
+	}
+}
+
+/* -----------------------------------------------------------------------------
+ * Escenario y lienzo · RV-L1.5
+ * -------------------------------------------------------------------------- */
+
+.propuesta .escenario {
+	position: relative;
+	isolation: isolate;
+}
+
+/**
+ * El recorte que quita el scroll de más · RV-L2.10
+ *
+ * El lienzo mide `100vw` para ocupar el ancho completo aunque su contenedor no
+ * lo haga. Pero **`100vw` incluye la barra de scroll vertical**, así que en un
+ * navegador de escritorio el lienzo sobra unos 15 px por la derecha. Eso saca
+ * una barra de scroll horizontal, la barra roba altura a la ventana, y el
+ * `100dvh` del propio lienzo pasa a no caber: aparece un resto de scroll
+ * vertical que no corresponde a ningún contenido. Un poco de scroll de más, en
+ * las dos direcciones, por 15 píxeles.
+ *
+ * **`clip` y no `hidden`.** `hidden` convierte al elemento en contenedor de
+ * scroll y eso rompe el `position: sticky` del lienzo — se quedaría quieto en su
+ * sitio en vez de acompañar al scroll. `clip` recorta sin crear contenedor.
+ */
+.propuesta {
+	overflow-x: clip;
+}
+
+/** El lienzo 3D queda fijo detrás mientras el contenido pasa por delante. */
+.propuesta .lienzo {
+	position: sticky;
+	top: 0;
+	height: 100dvh;
+	/* Ancho de viewport completo aunque el escenario esté dentro de un contenedor. */
+	margin-inline: calc(50% - 50vw);
+	width: 100vw;
+	z-index: 0;
+	pointer-events: none;
+}
+
+/**
+ * Las dos capas visuales —ilustración estática y lienzo 3D— ocupan el mismo
+ * hueco, apiladas.
+ *
+ * Antes se sustituía una por otra al montar, y el cambio se veía como un
+ * parpadeo: aparecían las figuras planas y de golpe saltaba la escena. Ahora la
+ * estática se mantiene debajo y se cruzan las opacidades cuando el modelo ya
+ * está cargado y pintado, de modo que nunca hay un cuadro vacío.
+ */
+.propuesta .capa {
+	position: absolute;
+	inset: 0;
+	transition: opacity 700ms ease;
+}
+
+/**
+ * Aparición del lienzo · RV-L2.11b · RV-L2.11d
+ *
+ * Entra desde un poco más grande y algo desenfocado —el mismo lenguaje que usan
+ * los `.revelar[data-variante="profundidad"]` del texto—, de modo que la escena
+ * parece asentarse en su sitio en vez de encenderse de golpe.
+ *
+ * ---
+ *
+ * **El retraso de 420ms se quitó, y hay que entender por qué estaba.**
+ *
+ * Estaba para que la pantalla de carga terminara de irse *antes* de que el
+ * lienzo empezara a llegar: sin él se veía el anillo difuminándose sobre unas
+ * figuras que ya asomaban detrás. Pero las dos cosas seguidas suman, y sumaban
+ * casi dos segundos entre el 100 % y la escena a la vista —los mismos que se
+ * notaban al recargar.
+ *
+ * Lo que se pasó por alto es que **la pantalla de carga es opaca**
+ * (`bg-background`) y está por delante de todo. Mientras está entera, el lienzo
+ * puede aparecer por debajo sin que se vea nada: no hay ningún momento en que
+ * las dos se pisen. Así que las dos transiciones arrancan a la vez y lo que se
+ * ve es una sola cosa —el anillo se disuelve y detrás ya está la escena,
+ * terminando de posarse—, en 600ms en lugar de en 1900.
+ */
+.propuesta .capa-lienzo {
+	opacity: 0;
+	transform: scale(1.035);
+	filter: blur(14px);
+	transition:
+		opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+		transform 600ms cubic-bezier(0.16, 1, 0.3, 1),
+		filter 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.propuesta .capa-lienzo[data-listo="true"] {
+	opacity: 1;
+	transform: scale(1);
+	filter: blur(0);
+}
+.propuesta .capa-estatica[data-oculta="true"] {
+	opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.propuesta .capa {
+		transition: none;
+	}
+}
+
+/**
+ * La pantalla de carga · RV-L2.11 · RV-L2.12
+ *
+ * Cubre el tramo entre "se sabe que habrá lienzo" y "el lienzo ya se ve", que
+ * antes quedaba en blanco —o peor, dejaba asomar la cabecera y el primer acto
+ * del texto detrás del anillo, porque vivía dentro del hueco del héroe, no por
+ * delante de la página entera.
+ *
+ * `position: fixed` la saca de ese hueco y la pone por delante de todo —la
+ * cabecera incluida, que trae su propio `z-index: 40`— así que mientras esta
+ * pantalla existe es lo único que se ve. El fondo es opaco y sale de
+ * `--background`, el mismo token que ya pinta `.propuesta`: no hay una costura
+ * de color entre la pantalla de carga y la página que aparece detrás.
+ */
+.propuesta .pantalla-carga {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	/* Más corta que la aparición del lienzo, y a propósito: cuando esta capa
+	   termina de irse, la escena de debajo lleva ya dos tercios de su entrada
+	   hecha y se ve llegar el último tramo. Ver el bloque del lienzo, más
+	   arriba, para por qué las dos van a la vez y ya no en fila. */
+	transition: opacity 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.propuesta .pantalla-carga[data-oculta="true"] {
+	opacity: 0;
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.propuesta .pantalla-carga {
+		transition: none;
+	}
+}
+
+.propuesta .anillo-carga {
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+
+.propuesta .anillo-carga__pista {
+	stroke: color-mix(in oklab, var(--foreground) 16%, transparent);
+}
+
+.propuesta .anillo-carga__trazo {
+	stroke: var(--primary);
+	transform: rotate(-90deg);
+	transform-origin: 50% 50%;
+	/* El resplandor es sutil a propósito: es una espera, no un festejo. */
+	filter: drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 70%, transparent));
+	transition: stroke-dashoffset 200ms linear;
+}
+
+.propuesta .anillo-carga__texto {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.2rem;
+	text-align: center;
+}
+
+.propuesta .anillo-carga__porcentaje {
+	font-variant-numeric: tabular-nums;
+	font-size: 1.5rem;
+	font-weight: 300;
+	color: var(--foreground);
+}
+
+.propuesta .anillo-carga__leyenda {
+	font-size: 0.6875rem;
+	color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.propuesta .anillo-carga__trazo {
+		transition: none;
+	}
+}
+
+/**
+ * El contenido se desplaza sobre el lienzo, ocupando el hueco que este dejó.
+ *
+ * El margen negativo solo aplica cuando hay lienzo: sin él no hay hueco que
+ * recuperar y el contenido quedaría desplazado una pantalla hacia arriba.
+ */
+.propuesta .contenido {
+	position: relative;
+	z-index: 1;
+	margin-top: -100dvh;
+}
+
+/* -----------------------------------------------------------------------------
+ * El panel de lectura · RV-L4.2b
+ *
+ * **Lo que había antes era un velo, y dejó de bastar.** Oscurecía la mitad de la
+ * sección donde vive el texto, contando con que detrás hubiera un escenario a
+ * oscuras: sobre negro, un 66 % de fondo asienta cualquier párrafo. Ahora detrás
+ * hay una hélice de cincuenta metros con hebras naranjas, verdes y moradas
+ * cruzando el encuadre, y ninguna cantidad de velo sobre medio cuadro resuelve
+ * eso sin apagar la escena entera.
+ *
+ * Lo que sí lo resuelve es dejar de tratar el problema como una región de la
+ * pantalla y tratarlo como **lo que rodea al texto**: un panel que acompaña a la
+ * columna, no a la sección.
+ *
+ * Tres decisiones, y las tres importan:
+ *
+ * 1. **Va pegado a la columna**, no al bloque. Es la sexta parte de superficie,
+ *    así que el desenfoque cuesta una fracción de lo que costaría a pantalla
+ *    completa — y cae exactamente donde hay letras.
+ *
+ * 2. **Los bordes se difuminan con una máscara.** Un panel de bordes definidos
+ *    sobre la escena se lee como una tarjeta pegada encima, y esta página va de
+ *    texto flotando en un espacio. Con la máscara radial, el panel existe donde
+ *    hace falta y no existe en el borde.
+ *
+ * 3. **El color sale de `--background`**, así que sirve igual en claro y en
+ *    oscuro y en las cinco paletas: es siempre «el fondo de la página, algo
+ *    translúcido», nunca un gris elegido a mano que funcione solo en un tema.
+ *
+ * El panel garantiza el contraste **con el color y nada más**. Hubo un
+ * desenfoque encima y se retiró; el porqué está justo debajo de la regla.
+ * -------------------------------------------------------------------------- */
+
+.propuesta .columna {
+	position: relative;
+}
+
+.propuesta .columna::before {
+	content: "";
+	position: absolute;
+	/* Se desborda de la columna: el panel tiene que empezar a existir antes de
+	   que empiecen las letras, o el difuminado se come el borde del texto. */
+	inset: -2.5rem -3rem;
+	z-index: -1;
+	pointer-events: none;
+	border-radius: 2rem;
+	background: color-mix(in oklab, var(--background) 82%, transparent);
+	/* La caída larga es lo que evita que se lea como una tarjeta: el panel pierde
+	   fuerza durante casi la mitad de su ancho, así que no hay un borde donde el
+	   ojo pueda apoyarse. */
+	mask-image: radial-gradient(
+		ellipse 82% 78% at 50% 50%,
+		#000 0%,
+		#000 38%,
+		color-mix(in srgb, #000 62%, transparent) 66%,
+		color-mix(in srgb, #000 22%, transparent) 85%,
+		transparent 100%
+	);
+}
+
+/**
+ * **El desenfoque se retiró, y lo obligó el fondo vivo.**
+ *
+ * Había un `@supports (backdrop-filter)` que desenfocaba y desaturaba lo que
+ * quedara detrás del panel, y bajaba el velo del 82 % al 65 % porque el
+ * desenfoque hacía parte del trabajo. Sobre un fondo plano no se notaba. Sobre
+ * el campo de luz de `Ambiente.tsx` se notaba muchísimo: **aparecía un
+ * rectángulo redondeado nítido en mitad de la pantalla**, con un borde vertical
+ * recto de arriba abajo justo donde acaba la columna.
+ *
+ * El motivo es una limitación real del navegador, no un descuido: la máscara
+ * radial que difumina los bordes del panel se aplica a su color, **pero no al
+ * `backdrop-filter`**, que Chrome recorta contra la caja del elemento y punto.
+ * Así que el velo se desvanecía como estaba previsto mientras la desaturación
+ * seguía cortada en recto — y ese corte es lo que dibujaba la tarjeta.
+ *
+ * Quitarlo no debilita nada: el 82 % de la regla de arriba es exactamente el
+ * valor que ya estaba calculado para funcionar **sin** desenfoque, que es el
+ * caso que veían los navegadores sin soporte. Se pierde un efecto y se gana un
+ * borde que no existe, contraste medido y una propiedad cara menos
+ * —`backdrop-filter` a pantalla casi completa, en cada sección— compitiendo con
+ * la escena 3D.
+ */
+
+/* -----------------------------------------------------------------------------
+ * El texto secundario, un punto más firme · RV-L4.2b
+ *
+ * `--muted-foreground` está calibrado para leerse sobre el fondo liso de la
+ * página. Sobre el panel translúcido, con la escena moviéndose por debajo, se
+ * queda corto — y es justo el token de los párrafos largos y de los rótulos.
+ *
+ * Se deriva del color de texto principal en vez de escribir un color nuevo: así
+ * sigue las cinco paletas y los dos modos sin tener que definir diez valores, y
+ * no se puede quedar desincronizado de la paleta que lo rodea.
+ *
+ * **Solo dentro de esta ruta.** Tocar el token global obligaría a reauditar el
+ * contraste de todo el sitio, y aquí el problema es local: el fondo es una
+ * escena 3D.
+ * -------------------------------------------------------------------------- */
+
+.propuesta {
+	--muted-foreground: color-mix(in oklab, var(--foreground) 80%, var(--background));
+}
+
+/* -----------------------------------------------------------------------------
+ * El degradado de fondo · RV-L4.4
+ *
+ * **Antes eran seis manchas redondas; ahora es un degradado y nada más.** Las
+ * manchas se leían por lo que eran —círculos borrosos— y costaban seis capas de
+ * composición promovidas a la GPU de forma permanente, animándose mientras el
+ * campo de estrellas competía por la misma tarjeta. Un degradado no tiene forma
+ * que reconocer, es una sola capa y no se anima: el color cambia porque cambia
+ * el ángulo que lo define, y eso es una recomposición, no un repintado.
+ *
+ * **El tono lo pone `--amb-tono`**, un ángulo en grados que escribe
+ * `components/Ambiente.tsx` a partir del capítulo que se está leyendo. Es el
+ * mismo número exacto que tiñe las estrellas (`escena/climas.ts`), de modo que
+ * el aire y el cielo no pueden ir cada uno por su lado.
+ *
+ * Que el color se declare como `oklch(L C var(--amb-tono))` es lo que hace que
+ * esto funcione con una sola variable: la luminosidad y el croma se fijan aquí
+ * —son decisiones de diseño, iguales en todos los capítulos— y lo único que
+ * viaja es el matiz.
+ * -------------------------------------------------------------------------- */
+
+.propuesta {
+	/* Cuánta luz admite el fondo. Es el pomo bueno para regular todo esto: a 0
+	   desaparece el color y queda el cielo limpio sobre el fondo de la página. */
+	--amb-fuerza: 0.5;
+
+	/* Punto de partida: el rojo de marca, el clima del primer capítulo. Si el
+	   JavaScript no llegara a correr, la página se queda con él en vez de con el
+	   fondo plano de antes. */
+	--amb-tono: 352;
+
+	/* En claro el degradado tiñe papel: mucha luminancia y poco croma, o se lee
+	   como suciedad en la pantalla. */
+	--amb-l: 0.9;
+	--amb-c: 0.055;
+}
+
+html.dark .propuesta {
+	--amb-fuerza: 0.85;
+	--amb-l: 0.48;
+	--amb-c: 0.15;
+}
+
+/**
+ * Una diagonal, no un centro.
+ *
+ * Un degradado radial centrado vuelve a dar una forma —un halo en mitad de la
+ * pantalla, que es de lo que se venía— y uno vertical se lee como un cielo de
+ * amanecer, que es un cliché y además pone el color justo detrás de la cabecera.
+ * En diagonal el color entra por una esquina y se va por la contraria: no hay
+ * ningún punto donde el ojo pueda decir «ahí está el foco».
+ *
+ * Las paradas caen a transparente antes del final para que la mitad opuesta de
+ * la pantalla sea el fondo de la página tal cual, sin teñir. La escena necesita
+ * un sitio oscuro donde recortarse.
+ */
+.propuesta .ambiente {
+	background:
+		linear-gradient(
+			152deg,
+			oklch(var(--amb-l) var(--amb-c) var(--amb-tono) / calc(0.62 * var(--amb-fuerza))) 0%,
+			oklch(var(--amb-l) var(--amb-c) var(--amb-tono) / calc(0.34 * var(--amb-fuerza))) 34%,
+			oklch(var(--amb-l) var(--amb-c) var(--amb-tono) / calc(0.12 * var(--amb-fuerza))) 62%,
+			transparent 88%
+		),
+		var(--background);
+	overflow: hidden;
+}
+
+/* -----------------------------------------------------------------------------
+ * El polvo en suspensión
+ *
+ * Lo que convierte un degradado en un espacio. Las manchas dan color pero no dan
+ * escala: sin nada pequeño con que compararlas podrían estar a un metro o a un
+ * kilómetro. Treinta y cuatro puntos de luz derivando despacio resuelven eso, y
+ * de paso dan movimiento en las pantallas donde la esfera va lejos del centro.
+ *
+ * Solo se montan si la persona acepta movimiento: `index.tsx` no los pide
+ * siquiera cuando el sistema pide menos animación. La regla de más abajo es la
+ * red de seguridad por si acaso.
+ * -------------------------------------------------------------------------- */
+
+.propuesta .ambiente__polvo {
+	position: absolute;
+	inset: 0;
+}
+
+.propuesta .ambiente__mota {
+	position: absolute;
+	left: var(--x);
+	top: var(--y);
+	width: var(--s);
+	height: var(--s);
+	border-radius: 50%;
+	background: color-mix(in oklab, var(--foreground) 85%, var(--amb-amanecer));
+	opacity: 0;
+	mix-blend-mode: screen;
+	animation: rv-mota var(--d) linear var(--r) infinite;
+	will-change: transform, opacity;
+}
+
+/* En claro el polvo tendría que ser oscuro para verse, y un puntillado gris
+   sobre papel se lee como suciedad. Se apaga: en claro el fondo se sostiene con
+   los tintes. */
+html:not(.dark) .propuesta .ambiente__polvo {
+	display: none;
+}
+
+@keyframes rv-mota {
+	0% {
+		opacity: 0;
+		transform: translate3d(0, 14vh, 0) scale(0.5);
+	}
+	18% {
+		opacity: var(--o);
+	}
+	82% {
+		opacity: var(--o);
+	}
+	100% {
+		opacity: 0;
+		transform: translate3d(var(--deriva), -16vh, 0) scale(1);
+	}
+}
+
+/* -----------------------------------------------------------------------------
+ * Grano y viñeta · van POR DELANTE del lienzo
+ *
+ * El grano cae sobre todo, escena incluida. Es lo que hace que las figuras 3D y
+ * el fondo se lean como una sola imagen y no como un render pegado sobre un
+ * degradado: comparten textura, así que comparten superficie.
+ *
+ * **El grano se mueve por transformada, no repintando.** Un `background-position`
+ * animado obligaría a repintar la pantalla entera seis veces por segundo. Aquí
+ * el mosaico es un elemento más grande que el viewport que salta entre seis
+ * posiciones, y eso lo resuelve el compositor.
+ * -------------------------------------------------------------------------- */
+
+.propuesta .grano-capa {
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.propuesta .grano {
+	position: absolute;
+	inset: -20%;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='r'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23r)' opacity='0.55'/></svg>");
+	/* Bajo a propósito. El grano tiene que notarse cuando se busca y no antes;
+	   por encima de 0.07 empieza a competir con el texto. */
+	opacity: 0.055;
+	animation: rv-grano 0.9s steps(1) infinite;
+	will-change: transform;
+}
+
+@keyframes rv-grano {
+	0% {
+		transform: translate3d(0, 0, 0);
+	}
+	16.6% {
+		transform: translate3d(-4%, 3%, 0);
+	}
+	33.3% {
+		transform: translate3d(3%, -5%, 0);
+	}
+	50% {
+		transform: translate3d(-5%, -3%, 0);
+	}
+	66.6% {
+		transform: translate3d(4%, 4%, 0);
+	}
+	83.3% {
+		transform: translate3d(-2%, 5%, 0);
+	}
+}
+
+/**
+ * La viñeta, solo en oscuro.
+ *
+ * Cierra el encuadre y empuja la atención al centro. En claro haría lo
+ * contrario de lo que hace falta —oscurecer justo los bordes donde vive la
+ * columna de texto—, así que ahí no se pinta.
+ */
+.propuesta .vineta {
+	position: absolute;
+	inset: 0;
+	display: none;
+}
+
+html.dark .propuesta .vineta {
+	display: block;
+	background: radial-gradient(
+		ellipse 128% 96% at 50% 42%,
+		transparent 38%,
+		color-mix(in srgb, #000 30%, transparent) 74%,
+		color-mix(in srgb, #000 62%, transparent) 100%
+	);
+}
+
+/**
+ * Sin movimiento: el fondo se queda, la animación no.
+ *
+ * Es la diferencia que importa. Quien pide menos movimiento no pide una página
+ * gris: pide que nada se mueva. El degradado, el color por capítulo, el grano y
+ * la viñeta siguen ahí; lo que se detiene es el parpadeo del grano y el polvo.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.propuesta .grano,
+	.propuesta .ambiente__mota {
+		animation: none !important;
+	}
+	.propuesta .ambiente__polvo {
+		display: none;
+	}
+}

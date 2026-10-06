@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-MX">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link id="favicon-link" rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+		<title>RedVida — Sé la coincidencia que alguien está esperando</title>
+		<meta
+			name="description"
+			content="Regístrate como donador voluntario de células madre hematopoyéticas. Un hisopo bucal y tres minutos pueden salvar una vida."
+		/>
+		<meta name="theme-color" content="#7B0D1E" />
+
+		<!-- Open Graph: el tráfico de campañas llega de redes sociales, así que
+         la tarjeta que se comparte importa tanto como la página. -->
+		<meta property="og:type" content="website" />
+		<meta property="og:locale" content="es_MX" />
+		<meta property="og:site_name" content="RedVida" />
+		<meta property="og:title" content="Sé la coincidencia que alguien está esperando" />
+		<meta
+			property="og:description"
+			content="Solo 3 de cada 10 pacientes encuentran donador en su familia. Regístrate como donador voluntario de células madre."
+		/>
+		<meta property="og:image" content="/og-redvida.png" />
+		<meta name="twitter:card" content="summary_large_image" />
+
+		<!-- Aplica tema y paleta ANTES del primer pintado. Sin esto la página
+         aparece un instante con la paleta institucional y salta a la elegida,
+         que es justo lo que se nota al enseñar las propuestas. Va en línea y
+         sin `defer` a propósito: cualquier retraso reintroduce el destello. -->
+		<script>
+			;(function () {
+				try {
+					var d = document.documentElement
+					var t = localStorage.getItem("redvida-theme") || "system"
+					var oscuro =
+						t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
+					d.classList.add(oscuro ? "dark" : "light")
+					var p = localStorage.getItem("redvida-paleta")
+					if (p && p !== "actual" && /^[a-z]+$/.test(p)) d.dataset.paleta = p
+					// El logo va también aquí y no solo en React: sin esto el ícono de
+					// la pestaña parpadearía del "RV" por omisión al logo elegido en
+					// cuanto la aplicación montara, que es justo el destello que ya se
+					// evitó para tema y paleta.
+					var l = localStorage.getItem("redvida-logo")
+					if (l && /^[123]$/.test(l)) {
+						d.dataset.logo = l
+						var enlace = document.getElementById("favicon-link")
+						if (enlace) {
+							enlace.href = "/logos/logo-" + l + ".png"
+							enlace.type = "image/png"
+						}
+					}
+				} catch (e) {
+					/* Modo privado sin localStorage: se queda con lo de por omisión. */
+				}
+			})()
+		</script>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/main.tsx"></script>
+	</body>
+</html>

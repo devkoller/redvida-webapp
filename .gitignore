@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# NOTA: `src/routeTree.gen.ts` SÍ se versiona, aunque lo genere el plugin de
+# TanStack Router. El script de build ejecuta `tsc -b` antes que `vite build`,
+# así que en un clon limpio el archivo aún no existiría y el typecheck fallaría.
+# Es la misma decisión que en sigma-webapp. No editarlo a mano: se regenera solo
+# al arrancar `pnpm dev` o `vite build`.

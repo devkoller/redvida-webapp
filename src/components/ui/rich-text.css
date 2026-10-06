@@ -1,0 +1,111 @@
+/*
+ * Quill con los tokens del sistema de diseño: sigue la paleta y el modo
+ * oscuro (Quill trae grises fijos), y habla español (trae sus textos en inglés).
+ */
+.rich-text {
+	--rt-borde: var(--input);
+}
+.rich-text .ql-toolbar.ql-snow,
+.rich-text .ql-container.ql-snow {
+	border-color: var(--rt-borde);
+	font-family: inherit;
+}
+.rich-text .ql-toolbar.ql-snow {
+	border-radius: var(--radius-md) var(--radius-md) 0 0;
+	background: var(--muted);
+	color: var(--foreground);
+	padding: 4px 8px;
+}
+.rich-text .ql-container.ql-snow {
+	border-radius: 0 0 var(--radius-md) var(--radius-md);
+	background: var(--card);
+	color: var(--card-foreground);
+	font-size: 0.875rem;
+}
+.rich-text .ql-editor {
+	min-height: 8rem;
+	line-height: 1.6;
+	padding: 12px;
+}
+.rich-text .ql-editor.ql-blank::before {
+	color: var(--muted-foreground);
+	font-style: normal;
+}
+.rich-text .ql-editor h3 {
+	font-size: 1.125rem;
+	font-weight: 600;
+}
+.rich-text .ql-editor h4 {
+	font-size: 1rem;
+	font-weight: 600;
+}
+.rich-text .ql-editor h2 {
+	font-size: 1.25rem;
+	font-weight: 600;
+}
+/* Botones de 40 px: el área táctil mínima del estándar. */
+.rich-text .ql-toolbar button {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--radius-sm);
+}
+.rich-text .ql-toolbar button:hover,
+.rich-text .ql-toolbar button.ql-active {
+	background: var(--accent);
+}
+.rich-text .ql-snow .ql-stroke {
+	stroke: currentColor;
+}
+.rich-text .ql-snow .ql-fill {
+	fill: currentColor;
+}
+.rich-text .ql-toolbar button:hover .ql-stroke,
+.rich-text .ql-toolbar button.ql-active .ql-stroke {
+	stroke: var(--primary-accent);
+}
+.rich-text .ql-toolbar button:hover .ql-fill,
+.rich-text .ql-toolbar button.ql-active .ql-fill {
+	fill: var(--primary-accent);
+}
+.rich-text .ql-container:focus-within {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
+}
+.rich-text--solo-lectura .ql-toolbar {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+/* Ventanita del enlace, en español y con los colores del tema. */
+.ql-snow .ql-tooltip {
+	background: var(--popover);
+	color: var(--popover-foreground);
+	border-color: var(--input);
+	box-shadow: var(--shadow-md, 0 4px 12px rgb(0 0 0 / 0.15));
+	z-index: 20;
+}
+.ql-snow .ql-tooltip input[type="text"] {
+	background: var(--card);
+	color: var(--card-foreground);
+	border-color: var(--input);
+}
+.ql-snow .ql-tooltip a.ql-action,
+.ql-snow .ql-tooltip a.ql-remove,
+.ql-snow .ql-tooltip a {
+	color: var(--primary-accent);
+}
+.ql-snow .ql-tooltip::before {
+	content: "Dirección:";
+}
+.ql-snow .ql-tooltip[data-mode="link"]::before {
+	content: "Dirección del enlace:";
+}
+.ql-snow .ql-tooltip.ql-editing a.ql-action::after {
+	content: "Guardar";
+}
+.ql-snow .ql-tooltip a.ql-action::after {
+	content: "Editar";
+}
+.ql-snow .ql-tooltip a.ql-remove::before {
+	content: "Quitar";
+}
